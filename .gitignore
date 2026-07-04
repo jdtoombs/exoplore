@@ -16,6 +16,10 @@ frontend/dist/
 # Agent/local planning
 .pi/
 docs/plans/
+PLAN.md
+plans-*.md
+CLEANUP.md
+cleanup.md
 
 # Local env files
 .env
