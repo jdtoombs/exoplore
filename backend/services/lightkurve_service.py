@@ -25,21 +25,33 @@ MISSION_STARTER_TARGETS = {
             'value': 'Kepler-10',
             'label': 'Kepler-10',
             'description': 'Known Kepler system; good starter target',
+            'ra': 285.6794,
+            'dec': 50.2413,
+            'distanceLightYears': 608,
         },
         {
             'value': 'Kepler-22',
             'label': 'Kepler-22',
             'description': 'Known Kepler planet host',
+            'ra': 289.8649,
+            'dec': 47.8849,
+            'distanceLightYears': 638,
         },
         {
             'value': 'Kepler-186',
             'label': 'Kepler-186',
             'description': 'Known Kepler multi-planet system',
+            'ra': 298.4780,
+            'dec': 43.9550,
+            'distanceLightYears': 579,
         },
         {
             'value': 'KIC 8462852',
             'label': 'KIC 8462852',
             'description': "Tabby's Star; unusual Kepler light curve",
+            'ra': 301.5644,
+            'dec': 44.4569,
+            'distanceLightYears': 1470,
         },
     ],
     'TESS': [
@@ -47,21 +59,33 @@ MISSION_STARTER_TARGETS = {
             'value': 'TOI-700',
             'label': 'TOI-700',
             'description': 'Known TESS planet host',
+            'ra': 93.3120,
+            'dec': -65.5770,
+            'distanceLightYears': 101,
         },
         {
             'value': 'LHS 3844',
             'label': 'LHS 3844',
             'description': 'Known TESS planet host',
+            'ra': 331.1530,
+            'dec': -69.1780,
+            'distanceLightYears': 49,
         },
         {
             'value': 'HD 21749',
             'label': 'HD 21749',
             'description': 'Known TESS planet host',
+            'ra': 52.8370,
+            'dec': -63.5000,
+            'distanceLightYears': 53,
         },
         {
             'value': 'Pi Mensae',
             'label': 'Pi Mensae',
             'description': 'Bright known TESS planet host',
+            'ra': 84.2912,
+            'dec': -80.4691,
+            'distanceLightYears': 60,
         },
     ],
     'K2': [
@@ -69,21 +93,33 @@ MISSION_STARTER_TARGETS = {
             'value': 'K2-18',
             'label': 'K2-18',
             'description': 'Known K2 planet host',
+            'ra': 172.5600,
+            'dec': 7.5880,
+            'distanceLightYears': 124,
         },
         {
             'value': 'K2-3',
             'label': 'K2-3',
             'description': 'Known K2 planet host',
+            'ra': 172.3340,
+            'dec': -1.4550,
+            'distanceLightYears': 144,
         },
         {
             'value': 'K2-141',
             'label': 'K2-141',
             'description': 'Known K2 planet host',
+            'ra': 179.2880,
+            'dec': -1.1930,
+            'distanceLightYears': 202,
         },
         {
             'value': 'EPIC 201367065',
             'label': 'EPIC 201367065',
             'description': 'EPIC identifier for a known K2 system',
+            'ra': 172.3340,
+            'dec': -1.4550,
+            'distanceLightYears': 144,
         },
     ],
 }
@@ -150,6 +186,21 @@ def _starter_target_suggestions(mission):
             'source': 'starter',
         }
         for target in MISSION_STARTER_TARGETS.get(mission, [])
+    ]
+
+
+def get_target_map(mission):
+    """Return curated map-ready starter targets for the selected mission."""
+    cleaned_mission = _clean_mission(mission)
+
+    return [
+        {
+            **target,
+            'mission': cleaned_mission,
+            'source': 'starter-map',
+        }
+        for target in MISSION_STARTER_TARGETS.get(cleaned_mission, [])
+        if target.get('ra') is not None and target.get('dec') is not None
     ]
 
 
@@ -477,7 +528,7 @@ def get_lightcurve(target, mission, progress_callback=None):
         progress_callback,
         4,
         'validating',
-        'Checking launch coordinates...',
+        'Checking scan target...',
     )
     cleaned_target = _clean_target(target)
     cleaned_mission = _clean_mission(mission)
@@ -501,7 +552,7 @@ def get_lightcurve(target, mission, progress_callback=None):
                 progress_callback,
                 100,
                 'cached',
-                'Arrived using cached light curve data.',
+                'Loaded cached light curve data.',
             )
             return _response_with_cache_metadata(cached_entry['data'], True, cached_at, now)
 
@@ -518,7 +569,7 @@ def get_lightcurve(target, mission, progress_callback=None):
         progress_callback,
         100,
         'complete',
-        'Arrived at the destination star.',
+        'Scan complete. Light curve data ready.',
     )
     return _response_with_cache_metadata(lightcurve_data, False, cached_at, cached_at)
 

@@ -13,7 +13,7 @@ export default function App() {
       <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
         <AppHeader />
 
-        <Container maxWidth="lg" sx={{ py: 6 }}>
+        <Container maxWidth={false} sx={{ py: 6, px: { xs: 2, sm: 3, lg: 4 } }}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/about-data" element={<AboutDataPage />} />

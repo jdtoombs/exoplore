@@ -13,7 +13,6 @@ import {
   Chip,
   CircularProgress,
   FormControlLabel,
-  MenuItem,
   Stack,
   Switch,
   TextField,
@@ -32,21 +31,253 @@ import {
 } from '../utils/lightcurveMath';
 
 const missions = ['Kepler', 'TESS', 'K2'];
+const missionDescriptions = {
+  Kepler: 'Original deep-field planet hunt',
+  TESS: 'Nearby bright-star survey',
+  K2: 'Repurposed ecliptic campaign',
+};
 
 function PageIntro() {
   return (
     <Box>
       <Typography variant="overline" color="primary">
-        Lightkurve Search
+        Mission Star List
       </Typography>
       <Typography variant="h3" component="h1" fontWeight={800} gutterBottom>
-        Explore a Star Light Curve
+        Pick a mission, scan a star
       </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ maxWidth: '720px' }}>
-        Enter a target star and mission. The Flask backend uses Lightkurve to download and
-        normalize the mission data, then React renders the returned time-series data with Plotly.
+      <Typography variant="body1" color="text.secondary" sx={{ maxWidth: '760px' }}>
+        Choose Kepler, TESS, or K2, then pick an available target to scan for Lightkurve data.
       </Typography>
     </Box>
+  );
+}
+
+function MissionStarList({ loading, error, mission, selectedTarget, stars, onMissionChange, onSelectStar }) {
+  return (
+    <Card elevation={5}>
+      <CardContent>
+        <Stack spacing={2.5}>
+          <Stack spacing={1.5}>
+            <Box>
+              <Typography variant="h5" component="h2" fontWeight={800}>
+                Targets
+              </Typography>
+              <Typography color="text.secondary">
+                Select a mission, then choose a target.
+              </Typography>
+            </Box>
+
+            <ToggleButtonGroup
+              aria-label="Mission selector"
+              color="primary"
+              exclusive
+              fullWidth
+              onChange={(_, nextMission) => {
+                if (nextMission) {
+                  onMissionChange(nextMission);
+                }
+              }}
+              size="small"
+              value={mission}
+              sx={{
+                gap: 1,
+                '& .MuiToggleButtonGroup-grouped': {
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: '999px !important',
+                  color: 'text.secondary',
+                  fontWeight: 800,
+                  py: 0.75,
+                  textTransform: 'none',
+                  '&.Mui-selected': {
+                    bgcolor: 'primary.main',
+                    color: 'primary.contrastText',
+                    '&:hover': {
+                      bgcolor: 'primary.main',
+                    },
+                  },
+                },
+              }}
+            >
+              {missions.map((missionName) => (
+                <ToggleButton key={missionName} value={missionName}>
+                  {missionName}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+
+            <Typography variant="caption" color="text.secondary">
+              {missionDescriptions[mission]}
+            </Typography>
+          </Stack>
+
+          {error && <Alert severity="error">{error}</Alert>}
+
+          {loading ? (
+            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', p: 2 }}>
+              <CircularProgress size={24} />
+              <Typography>Loading mission targets...</Typography>
+            </Stack>
+          ) : (
+            <Stack spacing={1.5}>
+              {stars.map((star) => {
+                const selected = star.value === selectedTarget;
+
+                return (
+                  <Box
+                    key={star.value}
+                    onClick={() => onSelectStar(star)}
+                    sx={{
+                      border: '1px solid',
+                      borderColor: selected ? 'primary.main' : 'divider',
+                      borderRadius: 2,
+                      cursor: 'pointer',
+                      p: 2,
+                      bgcolor: selected ? 'rgba(144, 202, 249, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                      boxShadow: selected ? '0 0 24px rgba(144, 202, 249, 0.16)' : 'none',
+                      transition: 'border-color 160ms ease, background 160ms ease, box-shadow 160ms ease',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        bgcolor: 'rgba(144, 202, 249, 0.08)',
+                      },
+                    }}
+                  >
+                    <Box>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Typography variant="subtitle1" fontWeight={800}>
+                          {star.label}
+                        </Typography>
+                        {selected && <Chip color="primary" label="Selected" size="small" />}
+                      </Stack>
+                      <Typography variant="body2" color="text.secondary">
+                        {star.description}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        RA {formatCoordinate(star.ra)}° · Dec {formatCoordinate(star.dec)}°{formatDistance(star.distanceLightYears)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Stack>
+          )}
+
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+function formatCoordinate(value) {
+  return Number.isFinite(value) ? value.toFixed(2) : 'unknown';
+}
+
+function formatDistance(distanceLightYears) {
+  return Number.isFinite(distanceLightYears) ? ` · ${distanceLightYears.toLocaleString()} ly from Sun` : '';
+}
+
+function TargetWorkspace({
+  blsSearch,
+  chartSettings,
+  error,
+  lightcurve,
+  loading,
+  loadingMessage,
+  loadProgress,
+  mission,
+  selectedBlsCandidate,
+  selectedStar,
+  target,
+  onChartSettingsChange,
+  onRunBlsSearch,
+  onScanTarget,
+  onSelectBlsCandidate,
+}) {
+  const hasSelectedTarget = Boolean(target?.trim());
+  const targetLabel = selectedStar?.label || target;
+
+  return (
+    <Card elevation={5} sx={{ minHeight: 520 }}>
+      <CardContent>
+        <Stack spacing={3}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={2}
+            sx={{ alignItems: { md: 'flex-start' }, justifyContent: 'space-between' }}
+          >
+            <Box>
+              <Typography variant="overline" color="text.secondary">
+                Current target
+              </Typography>
+              <Typography variant="h4" component="h2" fontWeight={800}>
+                {hasSelectedTarget ? targetLabel : 'No target selected'}
+              </Typography>
+              <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+                {hasSelectedTarget
+                  ? selectedStar
+                    ? `${selectedStar.description} · RA ${formatCoordinate(selectedStar.ra)}° · Dec ${formatCoordinate(selectedStar.dec)}°${formatDistance(selectedStar.distanceLightYears)}`
+                    : `Custom ${mission} target ready to scan.`
+                  : 'Select a target in the target list and press Scan to begin.'}
+              </Typography>
+            </Box>
+
+            {hasSelectedTarget && (
+              <Button disabled={loading} onClick={() => onScanTarget(target)} size="large" variant="contained">
+                {loading ? 'Scanning...' : 'Scan'}
+              </Button>
+            )}
+          </Stack>
+
+          {loading && (
+            <RocketLoadingBar
+              message={loadingMessage}
+              mission={mission}
+              progress={loadProgress}
+              target={target}
+            />
+          )}
+
+          {error && <Alert severity="error">{error}</Alert>}
+
+          {lightcurve ? (
+            <LightcurveChart
+              blsSearch={blsSearch}
+              chartSettings={chartSettings}
+              lightcurve={lightcurve}
+              selectedBlsCandidate={selectedBlsCandidate}
+              onChartSettingsChange={onChartSettingsChange}
+              onRunBlsSearch={onRunBlsSearch}
+              onSelectBlsCandidate={onSelectBlsCandidate}
+            />
+          ) : !loading && (
+            <Box
+              sx={{
+                border: '1px dashed',
+                borderColor: 'divider',
+                borderRadius: 3,
+                display: 'grid',
+                minHeight: 300,
+                placeItems: 'center',
+                px: 3,
+                textAlign: 'center',
+              }}
+            >
+              <Stack spacing={1} sx={{ maxWidth: 460 }}>
+                <Typography variant="h6" fontWeight={800}>
+                  {hasSelectedTarget ? 'Ready to scan' : 'Select a target to begin'}
+                </Typography>
+                <Typography color="text.secondary">
+                  {hasSelectedTarget
+                    ? 'Press Scan in the target list or in this panel to fetch Lightkurve data and render the light curve.'
+                    : 'Pick a mission on the left, choose a star from the target list, then press Scan.'}
+                </Typography>
+              </Stack>
+            </Box>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -68,7 +299,6 @@ function LoadLightcurveCard({
   onTargetChange,
   onTargetSuggestionsClose,
   onTargetSuggestionsOpen,
-  onMissionChange,
   onLoad,
   onRunBlsSearch,
   onSelectBlsCandidate,
@@ -80,14 +310,12 @@ function LoadLightcurveCard({
           <SearchForm
             loading={loading}
             target={target}
-            mission={mission}
             targetSuggestions={targetSuggestions}
             targetSuggestionsOpen={targetSuggestionsOpen}
             targetSuggestionsLoading={targetSuggestionsLoading}
             onTargetChange={onTargetChange}
             onTargetSuggestionsClose={onTargetSuggestionsClose}
             onTargetSuggestionsOpen={onTargetSuggestionsOpen}
-            onMissionChange={onMissionChange}
             onLoad={onLoad}
           />
           {loading && (
@@ -119,14 +347,12 @@ function LoadLightcurveCard({
 function SearchForm({
   loading,
   target,
-  mission,
   targetSuggestions,
   targetSuggestionsOpen,
   targetSuggestionsLoading,
   onTargetChange,
   onTargetSuggestionsClose,
   onTargetSuggestionsOpen,
-  onMissionChange,
   onLoad,
 }) {
   return (
@@ -152,20 +378,6 @@ function SearchForm({
             onTargetChange={onTargetChange}
           />
 
-          <TextField
-            label="Mission"
-            value={mission}
-            onChange={(event) => onMissionChange(event.target.value)}
-            select
-            sx={{ minWidth: { md: 180 } }}
-          >
-            {missions.map((missionName) => (
-              <MenuItem key={missionName} value={missionName}>
-                {missionName}
-              </MenuItem>
-            ))}
-          </TextField>
-
           <Button
             type="submit"
             variant="contained"
@@ -173,7 +385,7 @@ function SearchForm({
             disabled={loading || !target.trim()}
             sx={{ minWidth: 160 }}
           >
-            {loading ? 'Loading...' : 'Load Data'}
+            {loading ? 'Scanning...' : 'Scan Star'}
           </Button>
         </Stack>
       </Stack>
@@ -684,7 +896,7 @@ function formatDuration(durationDays) {
 
 export default function HomePage() {
   const lightcurveEventSourceRef = useRef(null);
-  const [target, setTarget] = useState('Kepler-10');
+  const [target, setTarget] = useState('');
   const [mission, setMission] = useState('Kepler');
   const [targetSuggestions, setTargetSuggestions] = useState([]);
   const [targetSuggestionsOpen, setTargetSuggestionsOpen] = useState(false);
@@ -707,10 +919,64 @@ export default function HomePage() {
   const [loadProgress, setLoadProgress] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [error, setError] = useState('');
+  const [starMap, setStarMap] = useState({
+    loading: false,
+    error: '',
+    stars: [],
+  });
 
   useEffect(() => () => {
     lightcurveEventSourceRef.current?.close();
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    setStarMap((currentMap) => ({
+      ...currentMap,
+      loading: true,
+      error: '',
+    }));
+
+    async function loadStarMap() {
+      const params = new URLSearchParams({ mission });
+
+      try {
+        const response = await fetch(`/api/targets/map?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.details || payload.error || 'Star list failed to load.');
+        }
+
+        if (active) {
+          setStarMap({
+            loading: false,
+            error: '',
+            stars: payload.stars || [],
+          });
+        }
+      } catch (err) {
+        if (active && err.name !== 'AbortError') {
+          setStarMap({
+            loading: false,
+            error: err.message || 'Star list failed to load.',
+            stars: [],
+          });
+        }
+      }
+    }
+
+    loadStarMap();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [mission]);
 
   useEffect(() => {
     if (!targetSuggestionsOpen) {
@@ -764,20 +1030,24 @@ export default function HomePage() {
     setTargetSuggestionsLoading(false);
   }
 
-  function loadLightcurve(event) {
-    event.preventDefault();
+  function startLightcurveScan(targetQuery, selectedMission = mission) {
+    const cleanedTarget = targetQuery.trim();
 
-    const targetQuery = target.trim();
-    const params = new URLSearchParams({ target: targetQuery, mission });
+    if (!cleanedTarget) {
+      return;
+    }
+
+    const params = new URLSearchParams({ target: cleanedTarget, mission: selectedMission });
 
     if (lightcurveEventSourceRef.current) {
       lightcurveEventSourceRef.current.close();
       lightcurveEventSourceRef.current = null;
     }
 
+    setTarget(cleanedTarget);
     setLoading(true);
     setLoadProgress(2);
-    setLoadingMessage('Preparing the launch sequence...');
+    setLoadingMessage('Preparing the scan sequence...');
     setError('');
     setBlsSearch({ loading: false, error: '', results: null });
     setSelectedBlsCandidate(null);
@@ -817,7 +1087,7 @@ export default function HomePage() {
 
       const payload = JSON.parse(completeEvent.data);
       setLoadProgress(100);
-      setLoadingMessage('Arrived at the destination star.');
+      setLoadingMessage('Scan complete. Lightkurve data received.');
       setLightcurve(payload);
       setChartSettings((currentSettings) => ({
         ...currentSettings,
@@ -848,6 +1118,36 @@ export default function HomePage() {
       closeEventSource();
       setLoading(false);
     });
+  }
+
+  function loadLightcurve(event) {
+    event.preventDefault();
+    startLightcurveScan(target, mission);
+  }
+
+  function handleMissionChange(nextMission) {
+    if (!nextMission || nextMission === mission) {
+      return;
+    }
+
+    lightcurveEventSourceRef.current?.close();
+    lightcurveEventSourceRef.current = null;
+    setMission(nextMission);
+    setTarget('');
+    setLightcurve(null);
+    setLoading(false);
+    setError('');
+    setTargetSuggestions([]);
+    setTargetSuggestionsOpen(false);
+    setTargetSuggestionsLoading(false);
+    setBlsSearch({ loading: false, error: '', results: null });
+    setSelectedBlsCandidate(null);
+  }
+
+  function selectMapStar(star) {
+    if (star?.value) {
+      setTarget(star.value);
+    }
   }
 
   async function runBlsSearch() {
@@ -890,32 +1190,49 @@ export default function HomePage() {
     }
   }
 
+  const selectedStar = starMap.stars.find((star) => star.value === target);
+
   return (
     <Stack spacing={4}>
       <PageIntro />
-      <LoadLightcurveCard
-        lightcurve={lightcurve}
-        loading={loading}
-        loadProgress={loadProgress}
-        loadingMessage={loadingMessage}
-        error={error}
-        target={target}
-        mission={mission}
-        targetSuggestions={targetSuggestions}
-        targetSuggestionsOpen={targetSuggestionsOpen}
-        targetSuggestionsLoading={targetSuggestionsLoading}
-        chartSettings={chartSettings}
-        blsSearch={blsSearch}
-        selectedBlsCandidate={selectedBlsCandidate}
-        onChartSettingsChange={setChartSettings}
-        onTargetChange={setTarget}
-        onTargetSuggestionsClose={handleTargetSuggestionsClose}
-        onTargetSuggestionsOpen={() => setTargetSuggestionsOpen(true)}
-        onMissionChange={setMission}
-        onLoad={loadLightcurve}
-        onRunBlsSearch={runBlsSearch}
-        onSelectBlsCandidate={setSelectedBlsCandidate}
-      />
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 3,
+          gridTemplateColumns: { xs: '1fr', lg: 'clamp(300px, 22vw, 380px) minmax(0, 1fr)' },
+          alignItems: 'start',
+        }}
+      >
+        <Stack spacing={3} sx={{ position: { lg: 'sticky' }, top: { lg: 24 } }}>
+          <MissionStarList
+            error={starMap.error}
+            loading={starMap.loading}
+            mission={mission}
+            selectedTarget={target}
+            stars={starMap.stars}
+            onMissionChange={handleMissionChange}
+            onSelectStar={selectMapStar}
+          />
+        </Stack>
+
+        <TargetWorkspace
+          blsSearch={blsSearch}
+          chartSettings={chartSettings}
+          error={error}
+          lightcurve={lightcurve}
+          loading={loading}
+          loadingMessage={loadingMessage}
+          loadProgress={loadProgress}
+          mission={mission}
+          selectedBlsCandidate={selectedBlsCandidate}
+          selectedStar={selectedStar}
+          target={target}
+          onChartSettingsChange={setChartSettings}
+          onRunBlsSearch={runBlsSearch}
+          onScanTarget={(targetToScan) => startLightcurveScan(targetToScan, mission)}
+          onSelectBlsCandidate={setSelectedBlsCandidate}
+        />
+      </Box>
     </Stack>
   );
 }

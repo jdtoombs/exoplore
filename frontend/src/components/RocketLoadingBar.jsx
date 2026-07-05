@@ -1,26 +1,27 @@
 import { keyframes } from '@emotion/react';
-import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import StarsIcon from '@mui/icons-material/Stars';
 import { Box, Stack, Typography } from '@mui/material';
 
-const rocketBob = keyframes`
-  0%, 100% { transform: translateY(0) rotate(38deg); }
-  50% { transform: translateY(-6px) rotate(44deg); }
+const scanSweep = keyframes`
+  0% { transform: translateX(-18px); opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { transform: translateX(18px); opacity: 0; }
 `;
 
-const flameFlicker = keyframes`
-  0%, 100% { opacity: 0.55; transform: translateX(-1px) scaleX(0.82); }
-  50% { opacity: 1; transform: translateX(-5px) scaleX(1.12); }
+const reticlePulse = keyframes`
+  0%, 100% { box-shadow: 0 0 0 0 rgba(144, 202, 249, 0.32), inset 0 0 18px rgba(144, 202, 249, 0.18); }
+  50% { box-shadow: 0 0 0 10px rgba(144, 202, 249, 0), inset 0 0 28px rgba(144, 202, 249, 0.32); }
 `;
 
 const starPulse = keyframes`
   0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(255, 224, 130, 0.7)); }
-  50% { transform: scale(1.16); filter: drop-shadow(0 0 18px rgba(255, 224, 130, 1)); }
+  50% { transform: scale(1.14); filter: drop-shadow(0 0 18px rgba(255, 224, 130, 1)); }
 `;
 
-const dustDrift = keyframes`
-  0% { opacity: 0.8; transform: translateX(0) scale(1); }
-  100% { opacity: 0; transform: translateX(-18px) scale(0.45); }
+const signalDrift = keyframes`
+  0% { background-position: 0 0; }
+  100% { background-position: 44px 0; }
 `;
 
 function clampProgress(progress) {
@@ -35,8 +36,8 @@ function clampProgress(progress) {
 
 export default function RocketLoadingBar({ progress = 0, target, mission, message }) {
   const boundedProgress = clampProgress(progress);
-  const destination = target?.trim() || 'your target star';
-  const missionName = mission || 'mission data';
+  const targetName = target?.trim() || 'target star';
+  const missionName = mission || 'mission';
 
   return (
     <Box
@@ -47,14 +48,14 @@ export default function RocketLoadingBar({ progress = 0, target, mission, messag
         overflow: 'hidden',
         p: { xs: 2, sm: 2.5 },
         background:
-          'radial-gradient(circle at 88% 24%, rgba(255, 224, 130, 0.16), transparent 18%), linear-gradient(135deg, rgba(18, 26, 47, 0.98), rgba(11, 16, 32, 0.94))',
+          'radial-gradient(circle at 88% 24%, rgba(255, 224, 130, 0.14), transparent 18%), linear-gradient(135deg, rgba(18, 26, 47, 0.98), rgba(11, 16, 32, 0.94))',
         boxShadow: '0 18px 42px rgba(0, 0, 0, 0.25)',
       }}
     >
       <Stack spacing={1.8}>
         <Stack spacing={0.5}>
           <Typography variant="subtitle2" color="primary" fontWeight={800}>
-            Flying to {destination} in {missionName}...
+            Scanning {targetName} with {missionName}...
           </Typography>
           {message && (
             <Typography variant="body2" color="text.secondary">
@@ -64,14 +65,14 @@ export default function RocketLoadingBar({ progress = 0, target, mission, messag
         </Stack>
 
         <Box
-          aria-label={`Loading progress ${Math.round(boundedProgress)} percent`}
+          aria-label={`Scanning progress ${Math.round(boundedProgress)} percent`}
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(boundedProgress)}
           sx={{
             position: 'relative',
-            minHeight: { xs: 64, sm: 76 },
+            minHeight: { xs: 72, sm: 84 },
             px: { xs: 2.75, sm: 3.5 },
             py: 2,
             overflow: 'hidden',
@@ -82,10 +83,11 @@ export default function RocketLoadingBar({ progress = 0, target, mission, messag
               position: 'absolute',
               inset: 0,
               backgroundImage:
-                'radial-gradient(circle, rgba(255,255,255,0.32) 1px, transparent 1px), radial-gradient(circle, rgba(144,202,249,0.22) 1px, transparent 1px)',
-              backgroundPosition: '0 0, 22px 18px',
-              backgroundSize: '44px 34px, 58px 48px',
-              opacity: 0.45,
+                'radial-gradient(circle, rgba(255,255,255,0.32) 1px, transparent 1px), linear-gradient(90deg, rgba(144,202,249,0.08) 1px, transparent 1px)',
+              backgroundPosition: '0 0',
+              backgroundSize: '44px 34px',
+              opacity: 0.42,
+              animation: `${signalDrift} 2.4s linear infinite`,
             }}
           />
 
@@ -95,23 +97,35 @@ export default function RocketLoadingBar({ progress = 0, target, mission, messag
               left: { xs: 26, sm: 34 },
               right: { xs: 26, sm: 34 },
               top: '50%',
-              height: 10,
+              height: 12,
               borderRadius: 999,
               transform: 'translateY(-50%)',
-              background: 'linear-gradient(90deg, rgba(38, 50, 92, 0.95), rgba(21, 101, 192, 0.55), rgba(255, 224, 130, 0.42))',
+              background: 'linear-gradient(90deg, rgba(38, 50, 92, 0.95), rgba(21, 101, 192, 0.55), rgba(255, 224, 130, 0.34))',
               boxShadow: 'inset 0 0 12px rgba(0,0,0,0.38), 0 0 20px rgba(144,202,249,0.12)',
             }}
           >
             <Box
               sx={{
+                position: 'relative',
                 width: `${boundedProgress}%`,
                 height: '100%',
                 borderRadius: 'inherit',
                 transition: 'width 420ms ease-out',
                 background: 'linear-gradient(90deg, #42a5f5, #90caf9, #ffe082)',
                 boxShadow: '0 0 18px rgba(144,202,249,0.7)',
+                overflow: 'hidden',
               }}
-            />
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: 36,
+                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.75), transparent)',
+                  animation: `${scanSweep} 1.1s ease-in-out infinite`,
+                }}
+              />
+            </Box>
           </Box>
 
           <Box
@@ -127,52 +141,36 @@ export default function RocketLoadingBar({ progress = 0, target, mission, messag
             <Box
               sx={{
                 position: 'absolute',
-                left: `clamp(18px, ${boundedProgress}%, calc(100% - 34px))`,
+                left: `clamp(20px, ${boundedProgress}%, calc(100% - 28px))`,
                 top: '50%',
+                width: { xs: 38, sm: 46 },
+                height: { xs: 38, sm: 46 },
+                border: '2px solid rgba(144, 202, 249, 0.92)',
+                borderRadius: '50%',
                 transform: 'translate(-50%, -50%)',
                 transition: 'left 520ms cubic-bezier(0.22, 1, 0.36, 1)',
-              }}
-            >
-              <Box
-                sx={{
+                animation: `${reticlePulse} 1.25s ease-in-out infinite`,
+                '&::before, &::after': {
+                  content: '""',
                   position: 'absolute',
-                  left: -24,
+                  bgcolor: 'rgba(144, 202, 249, 0.9)',
+                },
+                '&::before': {
+                  left: '50%',
+                  top: -7,
+                  bottom: -7,
+                  width: 2,
+                  transform: 'translateX(-50%)',
+                },
+                '&::after': {
                   top: '50%',
-                  width: 24,
-                  height: 8,
-                  borderRadius: '999px 0 0 999px',
-                  transformOrigin: 'right center',
-                  background: 'linear-gradient(90deg, transparent, rgba(255, 112, 67, 0.9), rgba(255, 224, 130, 1))',
-                  filter: 'blur(0.2px)',
-                  animation: `${flameFlicker} 360ms ease-in-out infinite`,
-                }}
-              />
-              {[0, 1, 2].map((dot) => (
-                <Box
-                  key={dot}
-                  sx={{
-                    position: 'absolute',
-                    left: -10 - dot * 8,
-                    top: 13 + dot * 3,
-                    width: 4,
-                    height: 4,
-                    borderRadius: '50%',
-                    bgcolor: dot % 2 ? 'rgba(144,202,249,0.65)' : 'rgba(255,224,130,0.7)',
-                    animation: `${dustDrift} ${650 + dot * 130}ms ease-out infinite`,
-                    animationDelay: `${dot * 120}ms`,
-                  }}
-                />
-              ))}
-              <RocketLaunchIcon
-                sx={{
-                  color: '#e3f2fd',
-                  display: 'block',
-                  fontSize: { xs: 32, sm: 40 },
-                  filter: 'drop-shadow(0 0 10px rgba(144,202,249,0.75))',
-                  animation: `${rocketBob} 1s ease-in-out infinite`,
-                }}
-              />
-            </Box>
+                  left: -7,
+                  right: -7,
+                  height: 2,
+                  transform: 'translateY(-50%)',
+                },
+              }}
+            />
           </Box>
 
           <Box
@@ -201,13 +199,13 @@ export default function RocketLoadingBar({ progress = 0, target, mission, messag
 
         <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography variant="caption" color="text.secondary">
-            Launch
+            Signal lock
           </Typography>
           <Typography variant="caption" color="text.secondary" fontWeight={700}>
             {Math.round(boundedProgress)}%
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Destination
+            Lightkurve data
           </Typography>
         </Stack>
       </Stack>

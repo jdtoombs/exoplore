@@ -8,6 +8,7 @@ from services.lightkurve_service import (
     get_bls_candidates,
     get_kepler10_lightcurve,
     get_lightcurve,
+    get_target_map,
     search_targets,
 )
 
@@ -41,6 +42,26 @@ def target_search():
     except Exception as exc:
         return jsonify({
             'error': 'Failed to search targets.',
+            'details': str(exc),
+        }), 500
+
+
+@app.get('/api/targets/map')
+def target_map():
+    mission = request.args.get('mission', 'Kepler')
+
+    try:
+        return jsonify({
+            'mission': mission,
+            'stars': get_target_map(mission),
+            'reference': {
+                'label': '☉ Sun',
+                'description': 'Observer reference point: Lightkurve mission targets are plotted as sky coordinates as viewed from the Solar System.',
+            },
+        })
+    except Exception as exc:
+        return jsonify({
+            'error': 'Failed to load target map.',
             'details': str(exc),
         }), 500
 
